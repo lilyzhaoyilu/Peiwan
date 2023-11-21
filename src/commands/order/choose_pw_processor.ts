@@ -30,9 +30,18 @@ export const choosePeiwanProcessor = async (msg: any) => {
   const responder_name = responder_info.nickname ? responder_info.nickname : responder_info.username;
   const poster_name = msg.extra?.body?.user_info?.nickname ? msg.extra?.body?.user_info?.nickname : msg.extra?.body?.user_info?.username;
   const diandan_card = generateOrderCardToString(poster_name, responder_name);
-  await bot.API.message.create(10, income_button_value.poster_channel_id, diandan_card, income_button_value.poster_msg_id);
+  try {
+    await bot.API.message.create(10, income_button_value.poster_channel_id, diandan_card, income_button_value.poster_msg_id);
+  } catch (err) {
+    console.error("choosePeiwanProcessor create error: ", err);
+  }
   const poster_message = await getKookMessage(income_button_value.poster_msg_id);
-  await bot.API.message.update(income_button_value.poster_msg_id, updateCardWithSuccessEnding(poster_message.content));
+  try {
+    await bot.API.message.update(income_button_value.poster_msg_id, updateCardWithSuccessEnding(poster_message.content));
+  } catch (err) {
+    console.error("choosePeiwanProcessor update error: ", err);
+  }
+  return;
 }
 
 // If this then change checkIsOrderOngoing

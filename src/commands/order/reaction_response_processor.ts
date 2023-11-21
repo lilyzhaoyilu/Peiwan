@@ -93,13 +93,15 @@ const checkIsOrderOngoing = (content: string): boolean => {
 const sendResponderCardToPoster = async (responder_kook_id: string, responder_fallback_name: string, poster_kook_id: string, poster_msg_id: string, poster_channel_id: string) => {
   const peiwan_data = await getPeiwanInfo(responder_kook_id);
 
+  const fallback_qiangdan_string = `(font)${responder_fallback_name}(font)[warning]抢单啦! 这个陪玩的数据不在数据库内，请联系客服下单。`
+
   if (!peiwan_data) {
-    return await bot.API.directMessage.create(9, poster_kook_id, undefined, `${responder_fallback_name}抢单啦!`);
+    return await bot.API.directMessage.create(9, poster_kook_id, undefined, fallback_qiangdan_string);
   }
 
   const peiwan = peiwan_data[0];
   if (!peiwan_data[0]) {
-    return await bot.API.directMessage.create(9, poster_kook_id, undefined, `${responder_fallback_name}抢单啦!`);
+    return await bot.API.directMessage.create(9, poster_kook_id, undefined, fallback_qiangdan_string);
   }
 
 
