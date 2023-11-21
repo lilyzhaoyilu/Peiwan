@@ -47,7 +47,7 @@ class PublicOrder extends AppCommand {
         }
 
 
-        bot.API.directMessage.create(9, session.user.id, undefined, `以下陪玩参与抢单啦，请选择您心仪的陪玩！\n亲爱的老板，如果没有心仪的陪玩抢单，请☛ 点击进入，进行私聊派单，厚米娘会帮你私聊通知陪玩 `);
+        bot.API.directMessage.create(9, session.user.id, undefined, `以下陪玩参与抢单啦，请选择您心仪的陪玩！\n亲爱的老板，如果没有心仪的陪玩抢单，请☛ 点击进入，进行私聊派单，Fate助手会帮你私聊通知陪玩 `);
 
         //抢单的机器人消息id e.extra.body.msg_id
 
@@ -56,6 +56,7 @@ class PublicOrder extends AppCommand {
         // if a placer picks someone, close & succ
         // if time expires, close
         // if a placer quits, closs
+        return;
     };
 }
 

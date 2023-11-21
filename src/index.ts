@@ -1,7 +1,7 @@
 import { bot } from 'init/client';
 import { echoMenu } from './commands/echo/echo.menu';
 import { publicOrder } from './commands/order/public_order'
-import { buttonResponseProcessor as reactionResponseProcessor } from './commands/order/public_order_helpers';
+import { reactionResponseProcessor } from './commands/order/public_order_helpers';
 
 bot.messageSource.on('message', (e) => {
     console.log(e);
