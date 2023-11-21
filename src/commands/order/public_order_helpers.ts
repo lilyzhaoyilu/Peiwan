@@ -52,6 +52,10 @@ export const reactionResponseProcessor = async (msg: any) => {
     }
   }
 
+  if (!responder_has_qualified_role) {
+    return;
+  }
+
 
   // const data = await getKookMessage(order_post_msg_id);
 
@@ -61,15 +65,18 @@ export const reactionResponseProcessor = async (msg: any) => {
   // 3. send placer the corresponding card
 
 
+
   try {
     const beijingTime = poster_message?.quote?.create_at && !isNaN(Number(poster_message.quote.create_at)) ? new Date(poster_message.quote.create_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '';
 
+    // 发给陪玩 确认成功抢单
     await bot.API.directMessage.create(9, responder_user_id, undefined, `你已经成功抢单\n${poster_message?.quote?.author?.nickname} 于 ${beijingTime} 发的抢单的内容：${getContentAfterRole(poster_message?.quote?.content)}`);
   } catch (err) {
     console.error("API.directMessage.create 你已经成功抢单 error:", err);
   }
 
   const poster_kook_id = poster_message.quote.author.id;
+  // 发给老板 表明陪玩抢单
   await sendResponderCardToPoster(responder_user_id, responder_user_info.nickname, poster_kook_id)
 
   return;
@@ -139,7 +146,7 @@ const sendResponderCardToPoster = async (responder_kook_id: string, responder_fa
 
   const { name, display_id: displayId, introduction, location, timbre, picture_url: pictureUrl } = peiwan;
 
-  return await bot.API.directMessage.create(10, poster_kook_id, undefined, generateCardToString(name, displayId, introduction, location, timbre, pictureUrl));
+  return await bot.API.directMessage.create(10, poster_kook_id, undefined, generateCardToString(name, displayId, introduction, location, timbre, pictureUrl, responder_kook_id, poster_kook_id));
 }
 
 const getPeiwanInfo = async (kookId: string): Promise<any[]> => {
@@ -173,12 +180,27 @@ const getPeiwanInfo = async (kookId: string): Promise<any[]> => {
     await db.close();
   }
 };
-const generateCardToString = (name: string, displayId: string, introduction: string, location: string, timbre: string, pictureUrl: string) => {
+const generateCardToString = (name: string, displayId: string, introduction: string, location: string, timbre: string, pictureUrl: string, responder_kook_id: string, poster_kook_id: string) => {
   const card = new Card().setColor('#b2e9b0').setSize('lg');
   card.addTitle(`${name} 抢单啦`);
-  card.addText(`个人简介: ${introduction ? introduction : '暂无'}`);
-  card.addText(`地点: ${location ? location : '暂无'}`);
-  card.addText(`音色: ${timbre ? timbre : '暂无'}`);
+
+  card.addModule({
+    type: "section", text: {
+      "type": "kmarkdown",
+      "content": `个人简介: ${introduction ? introduction : '暂无'}\n编号: ${displayId}\n地点: ${location ? location : '暂无'}\n音色: ${timbre ? timbre : '暂无'}`
+    },
+    mode: "right",
+    accessory: {
+      "type": "button",
+      "theme": "primary",
+      "click": "return-val",
+      "value": `ChoosePW poster:${poster_kook_id} responder:${responder_kook_id}`,
+      "text": {
+        "type": "plain-text",
+        "content": "选择陪玩"
+      }
+    }
+  });
   if (pictureUrl) {
     card.addImage(pictureUrl);
   };
