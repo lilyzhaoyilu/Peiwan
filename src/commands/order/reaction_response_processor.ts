@@ -4,6 +4,7 @@ import { bot } from 'init/client';
 import { Card } from "kbotify";
 import { ERROR } from 'sqlite3';
 const sqlite3 = require('sqlite3').verbose();
+import { getUserInfo, getKookMessage } from './kook_functions';
 
 const HEADERS = {
   Authorization: `Bot ${auth.khltoken}`
@@ -12,7 +13,6 @@ const HEADERS = {
 export const reactionResponseProcessor = async (msg: any) => {
   // responder 回复表情 接单的
   // poster 发单人
-
 
   if (msg.type != 255 || msg.extra?.type != 'added_reaction' || msg.extra?.body?.emoji?.id !== "👍") {
     return;
@@ -56,16 +56,6 @@ export const reactionResponseProcessor = async (msg: any) => {
     return;
   }
 
-
-  // const data = await getKookMessage(order_post_msg_id);
-
-
-  // 1. check roles, if roles is corrrect
-  // 2. Check if the orignal order is still ongoing, call KOOK
-  // 3. send placer the corresponding card
-
-
-
   try {
     const beijingTime = poster_message?.quote?.create_at && !isNaN(Number(poster_message.quote.create_at)) ? new Date(poster_message.quote.create_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '';
 
@@ -75,9 +65,8 @@ export const reactionResponseProcessor = async (msg: any) => {
     console.error("API.directMessage.create 你已经成功抢单 error:", err);
   }
 
-  const poster_kook_id = poster_message.quote.author.id;
   // 发给老板 表明陪玩抢单
-  await sendResponderCardToPoster(responder_user_id, responder_user_info.nickname, poster_kook_id)
+  await sendResponderCardToPoster(responder_user_id, responder_user_info.nickname, poster_message.quote.author.id, poster_message.id, poster_message.channel_id)
 
   return;
 }
@@ -92,46 +81,16 @@ const getContentAfterRole = (content: string) => {
   return lastIndex === -1 ? content : content.substring(lastIndex + '(rol)'.length);
 }
 
-const getKookMessage = async (msg_id: string) => {
-  try {
-    const res = await axios.get(`https://www.kookapp.cn/api/v3/message/view?msg_id=${msg_id}`, {
-      headers: HEADERS
-    })
-    return res.data?.data ? res.data.data : {};
-  } catch (e) {
-    console.error("getKookMessage Error: ", e);
-    return {};
-  }
-}
-
+// If this then change updateCardWithSuccessEnding
 const checkIsOrderOngoing = (content: string): boolean => {
-  if (!content) {
+  if (!content || content.includes("此单已经结束")) {
     return false;
   }
-  if (content.includes("派单中")) {
-    return true;
-  }
-  return false;
+  return true;
 }
+// End IFTT
 
-const getUserInfo = async (userId: string, guildId: string = auth.guildId) => {
-  const USER_ROLE_REQUEST = `https://www.kookapp.cn/api/v3/user/view?guild_id=${guildId}&user_id=${userId}`;
-  if (userId == "" || userId === undefined || userId.length < 1) {
-    return {};
-  }
-
-  try {
-    const res = await axios.get(USER_ROLE_REQUEST, {
-      headers: HEADERS
-    })
-    return res.data?.data ? res.data.data : {};
-  } catch (err) {
-    console.error("Error at getUserRoles: ", err);
-    return {};
-  }
-}
-
-const sendResponderCardToPoster = async (responder_kook_id: string, responder_fallback_name: string, poster_kook_id: string) => {
+const sendResponderCardToPoster = async (responder_kook_id: string, responder_fallback_name: string, poster_kook_id: string, poster_msg_id: string, poster_channel_id: string) => {
   const peiwan_data = await getPeiwanInfo(responder_kook_id);
 
   if (!peiwan_data) {
@@ -146,7 +105,7 @@ const sendResponderCardToPoster = async (responder_kook_id: string, responder_fa
 
   const { name, display_id: displayId, introduction, location, timbre, picture_url: pictureUrl } = peiwan;
 
-  return await bot.API.directMessage.create(10, poster_kook_id, undefined, generateCardToString(name, displayId, introduction, location, timbre, pictureUrl, responder_kook_id, poster_kook_id));
+  return await bot.API.directMessage.create(10, poster_kook_id, undefined, generateCardToString(name, displayId, introduction, location, timbre, pictureUrl, responder_kook_id, poster_kook_id, poster_msg_id, poster_channel_id));
 }
 
 const getPeiwanInfo = async (kookId: string): Promise<any[]> => {
@@ -180,7 +139,8 @@ const getPeiwanInfo = async (kookId: string): Promise<any[]> => {
     await db.close();
   }
 };
-const generateCardToString = (name: string, displayId: string, introduction: string, location: string, timbre: string, pictureUrl: string, responder_kook_id: string, poster_kook_id: string) => {
+
+const generateCardToString = (name: string, displayId: string, introduction: string, location: string, timbre: string, pictureUrl: string, responder_kook_id: string, poster_kook_id: string, poster_msg_id: string, poster_channel_id: string) => {
   const card = new Card().setColor('#b2e9b0').setSize('lg');
   card.addTitle(`${name} 抢单啦`);
 
@@ -194,7 +154,7 @@ const generateCardToString = (name: string, displayId: string, introduction: str
       "type": "button",
       "theme": "primary",
       "click": "return-val",
-      "value": `ChoosePW poster:${poster_kook_id} responder:${responder_kook_id}`,
+      "value": `{"ChoosePW":"ChoosePW","poster_msg_id":"${poster_msg_id}","poster_channel_id":"${poster_channel_id}","poster":"${poster_kook_id}","responder":"${responder_kook_id}"}`,
       "text": {
         "type": "plain-text",
         "content": "选择陪玩"
